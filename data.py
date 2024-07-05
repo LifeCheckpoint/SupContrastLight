@@ -39,8 +39,9 @@ def set_loader(opt, size):
         batch_size=opt.batch_size,
         shuffle=True,
         num_workers=opt.num_workers,
-        pin_memory=True,
-        sampler=None
+        pin_memory=False,
+        sampler=None,
+        persistent_workers=True
     )
 
     return train_loader

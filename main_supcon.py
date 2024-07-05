@@ -3,13 +3,12 @@ import argparse
 from model import SimCLR2
 from data import *
 
+import torch
+
 from pytorch_lightning import seed_everything
 from pytorch_lightning import Trainer
 
-PUSH_MEG = False
-MSG_TOKEN = ""
-COMPILE_MODEL = False
-
+from pytorch_lightning import loggers as pl_loggers
 
 def parse_option():
     parser = argparse.ArgumentParser('argument for training')
@@ -25,6 +24,8 @@ def parse_option():
     parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay')
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
+    parser.add_argument('--warm_epochs', type=int, default=10, help='warming')
+    parser.add_argument('--warmup_from', type=float, default=0.01, help='warming from')
 
     # model dataset
     parser.add_argument('--model', type=str, default='resnet50')
@@ -46,19 +47,25 @@ def main():
     opt = parse_option()
 
     seed_everything(114514, workers=True)
+    tb_logger = pl_loggers.TensorBoardLogger('./resnet_model/log/', log_graph=True)
     trainer = Trainer(
         accelerator="gpu",
         limit_train_batches=opt.batch_size,
         max_epochs=opt.epochs,
         deterministic=True,
         enable_checkpointing=True,
-        default_root_dir="resnet_model"
+        default_root_dir="resnet_model",
+        log_every_n_steps=8,
+        logger=tb_logger
     )
+
+    torch.cuda.empty_cache()
+    torch.set_float32_matmul_precision('medium')
 
     SimCLR2_model = SimCLR2()
     SimCLR2_model.set_args(opt)
 
-    trainer.fit(SimCLR2_model, set_loader(opt))
+    trainer.fit(SimCLR2_model, set_loader(opt, 256))
 
 if __name__ == '__main__':
     main()    

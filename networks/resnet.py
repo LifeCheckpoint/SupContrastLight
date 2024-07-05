@@ -191,7 +191,7 @@ class SupConResNet(nn.Module):
             raise NotImplementedError(
                 'head not supported: {}'.format(head))
 
-    def forward(self, x, use_pretrained_model):
+    def forward(self, x, use_pretrained_model=True):
         feat = self.encoder(x)
         if use_pretrained_model == False:
             feat = F.normalize(self.head(feat), dim = 1)
